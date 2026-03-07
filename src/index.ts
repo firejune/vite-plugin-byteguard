@@ -19,17 +19,7 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
     apply: 'build',
     enforce: 'post',
 
-    config() {
-      return {
-        build: {
-          rollupOptions: {
-            output: {
-              format: 'iife'
-            }
-          }
-        }
-      }
-    },
+
 
     generateBundle(_, bundle) {
       const jsChunks = new Map<string, OutputChunk>()
@@ -47,7 +37,13 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
       // Encode each entry chunk → .bin
       const binMap = new Map<string, string>()
       for (const [fileName, chunk] of jsChunks) {
-        const encoded = encode(chunk.code, algorithm, keySize)
+        // Fix import.meta.url: inline scripts get page URL instead of asset URL.
+        // Replace with a computed URL that resolves to the original asset path.
+        const code = chunk.code.replace(
+          /import\.meta\.url/g,
+          `new URL("${fileName}",document.baseURI).href`
+        )
+        const encoded = encode(code, algorithm, keySize)
         const binFileName = fileName.replace(/\.js$/, `.${extension}`)
 
         this.emitFile({
