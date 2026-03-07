@@ -34,17 +34,18 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
     generateBundle(_, bundle) {
       const jsChunks = new Map<string, OutputChunk>()
 
-      // 1. Collect JS chunks (skip excluded patterns)
+      // Collect entry JS chunks only (skip workers, dynamic imports, etc.)
       for (const [fileName, chunk] of Object.entries(bundle)) {
         if (chunk.type !== 'chunk' || !fileName.endsWith('.js')) continue
+        if (!chunk.isEntry) continue
         if (isExcluded(fileName, exclude)) continue
         jsChunks.set(fileName, chunk)
       }
 
       if (jsChunks.size === 0) return
 
-      // 2. Encode each JS chunk → .bin
-      const binMap = new Map<string, string>() // jsFileName → binFileName
+      // Encode each entry chunk → .bin
+      const binMap = new Map<string, string>()
       for (const [fileName, chunk] of jsChunks) {
         const encoded = encode(chunk.code, algorithm, keySize)
         const binFileName = fileName.replace(/\.js$/, `.${extension}`)
@@ -59,9 +60,13 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
         delete bundle[fileName]
       }
 
-      // 3. Update HTML: replace <script> tags with inline loader
-      for (const [fileName, asset] of Object.entries(bundle)) {
-        if (!fileName.endsWith('.html') || asset.type !== 'asset') continue
+      // Update HTML: replace <script> tags with inline loader
+      for (const [, asset] of Object.entries(bundle)) {
+        if (
+          !String(asset.fileName).endsWith('.html') ||
+          asset.type !== 'asset'
+        )
+          continue
 
         let html =
           typeof asset.source === 'string'
