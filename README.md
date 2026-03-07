@@ -2,7 +2,7 @@
 
 Vite plugin that encodes JavaScript bundles into binary format, preventing casual source code exposure.
 
-**How it works:** At build time, JS chunks are encoded into a custom binary format (`.bin`). At runtime, a tiny inline loader (~300B) decodes the binary and passes the JavaScript to the browser's native V8/JSC engine via `new Function()`. **Zero runtime performance impact** — only the initial decode adds a negligible overhead.
+**How it works:** At build time, entry JS chunks are encoded into a custom binary format (`.bin`). At runtime, a tiny inline loader (~300B) decodes the binary and executes it as a module script. **Zero runtime performance impact** — only the initial decode adds negligible overhead.
 
 ## Install
 
@@ -35,12 +35,24 @@ byteguard({
   keySize: 32,
 
   // Glob patterns to exclude from encoding
-  exclude: ['**/worker*.js'],
+  exclude: [],
 
   // Encoded file extension (default: 'bin')
   extension: 'bin'
 })
 ```
+
+## What Gets Encoded
+
+| Asset Type | Encoded? | Protection |
+|------------|----------|------------|
+| Entry JS chunks | ✅ Binary `.bin` | Unreadable on disk |
+| Dynamic import chunks | ❌ `.js` as-is | Use with obfuscator |
+| Web Workers | ❌ `.js` as-is | Use with obfuscator |
+| CSS / Assets | ❌ Untouched | N/A |
+
+> [!TIP]
+> Pair with [rollup-plugin-obfuscator](https://www.npmjs.com/package/rollup-plugin-obfuscator) for full coverage — obfuscate all JS, then byteguard encodes the main bundle.
 
 ## Algorithms
 
@@ -49,8 +61,31 @@ byteguard({
 | `xor` | ⚡ fastest | casual protection | No |
 | `aes-gcm` | fast | strong encryption | Yes (WebCrypto) |
 
-- **XOR**: Random key XOR encoding. Fast decode, synchronous. Good for preventing casual string searches on extracted APK/IPA bundles.
-- **AES-GCM**: AES-256-GCM encryption via Node.js crypto (build) / WebCrypto (runtime). Stronger protection but requires async decoding.
+## CSP Requirements
+
+ByteGuard requires `'unsafe-inline'` in your Content Security Policy:
+
+```html
+<meta http-equiv="Content-Security-Policy"
+  content="script-src 'self' 'unsafe-inline';" />
+```
+
+## How It Works
+
+```
+Build Time:
+  index.js → [obfuscate] → [XOR encode] → index.bin
+
+Runtime:
+  index.html
+    └─ <script> (inline loader, ~300B)
+        ├─ fetch('./assets/index.bin')
+        ├─ XOR decode
+        └─ <script type="module">.textContent = decoded
+            └─ V8 executes natively
+```
+
+Workers and dynamic imports continue to load as normal `.js` files. The plugin automatically rewrites `import.meta.url` references so that asset paths resolve correctly from the inline script context.
 
 ## Binary Format
 
@@ -68,31 +103,18 @@ Offset  Size    Description
 varies  rest    Encoded payload
 ```
 
-## How It Protects
-
-Your bundled JS goes from this (readable):
-```js
-class Game { calculateScore() { ... } }
-```
-
-To this (binary blob):
-```
-42 47 52 44 01 01 20 00 a3 f7 2b ... (unreadable binary)
-```
-
-At runtime, the loader decodes and passes it directly to the JS engine — **same V8 performance, unreadable on disk**.
-
 ## Limitations
 
-- The inline loader script is visible in HTML (contains the decoding algorithm)
+- The inline loader script is visible in HTML (contains the decoding logic)
 - A determined attacker can intercept the decoded JS in memory via DevTools
 - This is **casual protection** — it prevents string searching, source browsing, and automated scraping of your JS bundles
+- Workers and dynamic import chunks remain as plain JS (use obfuscation for these)
 
 ## Use Cases
 
-- Capacitor/Cordova mobile apps (prevent APK extraction → source reading)
-- Electron apps (complement to bytenode for web-facing parts)
-- Hybrid apps where JS source should not be trivially accessible
+- **Capacitor/Cordova** mobile apps — prevent APK/IPA extraction → source reading
+- **Electron** apps — complement bytenode for web-facing parts
+- **Hybrid apps** where JS source should not be trivially accessible
 
 ## License
 
