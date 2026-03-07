@@ -19,6 +19,18 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
     apply: 'build',
     enforce: 'post',
 
+    config() {
+      return {
+        build: {
+          rollupOptions: {
+            output: {
+              format: 'iife'
+            }
+          }
+        }
+      }
+    },
+
     generateBundle(_, bundle) {
       const jsChunks = new Map<string, OutputChunk>()
 

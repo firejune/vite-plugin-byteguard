@@ -13,7 +13,7 @@ export function generateLoader(
     algorithm === 'xor' ? xorDecodeSnippet() : aesDecodeSnippet()
 
   const execute = isModule
-    ? `const s=document.createElement('script');s.type='module';s.src=URL.createObjectURL(new Blob([t],{type:'text/javascript'}));document.head.appendChild(s)`
+    ? `const s=document.createElement('script');s.textContent=t;document.head.appendChild(s)`
     : `(new Function(t))()`
 
   return `(async()=>{const r=await fetch('${binPath}');const b=new Uint8Array(await r.arrayBuffer());${decode}${execute}})()`

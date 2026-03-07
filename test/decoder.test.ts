@@ -7,8 +7,8 @@ describe('decoder', () => {
 
     expect(loader).toContain('fetch')
     expect(loader).toContain('./assets/index.bin')
-    expect(loader).toContain("type='module'")
-    expect(loader).toContain('createObjectURL')
+    expect(loader).toContain('textContent')
+    expect(loader).toContain('document.head.appendChild')
     // XOR specific: should have XOR decoding loop
     expect(loader).toContain('o[i]=d[i]^k[i%kl]')
   })
@@ -26,7 +26,7 @@ describe('decoder', () => {
     expect(loader).toContain('crypto.subtle.importKey')
     expect(loader).toContain('crypto.subtle.decrypt')
     expect(loader).toContain('AES-GCM')
-    expect(loader).toContain("type='module'")
+    expect(loader).toContain('textContent')
   })
 
   it('should generate AES-GCM classic loader', () => {
