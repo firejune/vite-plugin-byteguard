@@ -1,0 +1,58 @@
+{
+  "name": "vite-plugin-byteguard",
+  "version": "0.1.0",
+  "description": "Vite plugin that encodes JS bundles into binary format for casual source code protection",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "bytecode",
+    "binary",
+    "protection",
+    "obfuscation",
+    "source-protection",
+    "bundle-guard",
+    "capacitor",
+    "electron"
+  ],
+  "author": "firejune",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firejune/vite-plugin-byteguard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/firejune/vite-plugin-byteguard/issues"
+  },
+  "homepage": "https://github.com/firejune/vite-plugin-byteguard#readme",
+  "peerDependencies": {
+    "vite": ">=5.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.0"
+  }
+}
