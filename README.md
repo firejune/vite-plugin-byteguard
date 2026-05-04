@@ -2,7 +2,7 @@
 
 Vite plugin that encodes JavaScript bundles into binary format, preventing casual source code exposure.
 
-**How it works:** At build time, entry JS chunks are encoded into a custom binary format (`.bin`). At runtime, a tiny inline loader (~300B) decodes the binary and executes it as a module script. **Zero runtime performance impact** — only the initial decode adds negligible overhead.
+**How it works:** At build time, entry JS chunks are encoded into a custom binary format (`.bin`). At runtime, a tiny inline loader (~400B) decodes the binary and executes it via Blob URL. **Zero runtime performance impact** — only the initial decode adds negligible overhead.
 
 ## Install
 
@@ -63,29 +63,32 @@ byteguard({
 
 ## CSP Requirements
 
-ByteGuard requires `'unsafe-inline'` in your Content Security Policy:
+ByteGuard requires `'unsafe-inline'` and `blob:` in your Content Security Policy:
 
 ```html
 <meta http-equiv="Content-Security-Policy"
-  content="script-src 'self' 'unsafe-inline';" />
-```
+  content="script-src 'self' 'unsafe-inline' blob:;" />
 
 ## How It Works
 
 ```
 Build Time:
   index.js → [obfuscate] → [XOR encode] → index.bin
+  import('./chunk.js') → import(new URL('assets/chunk.js', document.baseURI).href)
 
 Runtime:
   index.html
-    └─ <script> (inline loader, ~300B)
+    └─ <script> (inline loader, ~400B)
         ├─ fetch('./assets/index.bin')
         ├─ XOR decode
-        └─ <script type="module">.textContent = decoded
+        └─ Blob URL → <script type="module" src="blob:...">
             └─ V8 executes natively
 ```
 
-Workers and dynamic imports continue to load as normal `.js` files. The plugin automatically rewrites `import.meta.url` references so that asset paths resolve correctly from the inline script context.
+Workers continue to load as normal `.js` files. The plugin automatically rewrites `import.meta.url` and dynamic `import()` paths so that asset references resolve correctly from the Blob URL execution context. This ensures compatibility with WKWebView (iOS/Capacitor) and other strict module environments.
+
+> [!TIP]
+> If you use `rollup-plugin-obfuscator` with `stringArray` encoding, add `reservedStrings: ['\\.js$']` to prevent import paths from being encoded into the string array.
 
 ## Binary Format
 
@@ -108,7 +111,8 @@ varies  rest    Encoded payload
 - The inline loader script is visible in HTML (contains the decoding logic)
 - A determined attacker can intercept the decoded JS in memory via DevTools
 - This is **casual protection** — it prevents string searching, source browsing, and automated scraping of your JS bundles
-- Workers and dynamic import chunks remain as plain JS (use obfuscation for these)
+- Workers remain as plain JS (use obfuscation for these)
+- Dynamic import chunks remain as plain `.js` files, but their import paths are automatically resolved
 
 ## Use Cases
 

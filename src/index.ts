@@ -37,12 +37,26 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
       // Encode each entry chunk → .bin
       const binMap = new Map<string, string>()
       for (const [fileName, chunk] of jsChunks) {
-        // Fix import.meta.url: inline scripts get page URL instead of asset URL.
-        // Replace with a computed URL that resolves to the original asset path.
-        const code = chunk.code.replace(
-          /import\.meta\.url/g,
-          `new URL("${fileName}",document.baseURI).href`
-        )
+        // The directory prefix of the entry chunk (e.g. "assets/")
+        const dir = fileName.substring(0, fileName.lastIndexOf('/') + 1)
+
+        const code = chunk.code
+          // Fix import.meta.url: inline scripts get page URL instead of asset URL.
+          // Replace with a computed URL that resolves to the original asset path.
+          .replace(
+            /import\.meta\.url/g,
+            `new URL("${fileName}",document.baseURI).href`
+          )
+          // Fix dynamic import(): relative paths resolve against the document URL
+          // in inline/Blob script context, not the original asset directory.
+          // Convert relative paths to absolute URLs via document.baseURI.
+          .replace(
+            /import\(\s*["'](\.[^"']+)['"]\s*\)/g,
+            (_, relPath: string) => {
+              const absPath = resolvePath(dir, relPath)
+              return `import(new URL("${absPath}",document.baseURI).href)`
+            }
+          )
         const encoded = encode(code, algorithm, keySize)
         const binFileName = fileName.replace(/\.js$/, `.${extension}`)
 
@@ -110,4 +124,33 @@ function isExcluded(fileName: string, patterns: string[]): boolean {
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Resolve a relative path against a directory prefix.
+ * e.g. resolvePath('assets/', './chunk.js') → 'assets/chunk.js'
+ *      resolvePath('assets/js/', '../shared/util.js') → 'assets/shared/util.js'
+ */
+export function resolvePath(dir: string, relPath: string): string {
+  const parts = (dir + relPath).split('/')
+  const resolved: string[] = []
+  for (const part of parts) {
+    if (part === '..') resolved.pop()
+    else if (part !== '.' && part !== '') resolved.push(part)
+  }
+  return resolved.join('/')
+}
+
+/**
+ * Rewrite relative dynamic import() paths in code to absolute URLs.
+ * Exported for testing purposes.
+ */
+export function rewriteDynamicImports(code: string, dir: string): string {
+  return code.replace(
+    /import\(\s*["'](\.[^"']+)['"]\s*\)/g,
+    (_, relPath: string) => {
+      const absPath = resolvePath(dir, relPath)
+      return `import(new URL("${absPath}",document.baseURI).href)`
+    }
+  )
 }
