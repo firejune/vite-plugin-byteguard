@@ -37,6 +37,9 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
           // Fix import.meta.url: inline scripts get page URL instead of asset URL.
           // Replace with a computed URL that resolves to the original asset path.
           .replace(/import\.meta\.url/g, `new URL("${fileName}",document.baseURI).href`)
+          // Vite 8(Rolldown): __VITE_PRELOAD__ references are injected by Vite's preload optimizer.
+          // In local execution (Capacitor/Electron) they are unnecessary. Replace with void 0.
+          .replace(/__VITE_PRELOAD__/g, 'void 0')
           // Fix dynamic import(): relative paths resolve against the document URL
           // in inline/Blob script context, not the original asset directory.
           // Convert relative paths to absolute URLs via document.baseURI.
@@ -117,8 +120,10 @@ export function resolvePath(dir: string, relPath: string): string {
  * Exported for testing purposes.
  */
 export function rewriteDynamicImports(code: string, dir: string): string {
-  return code.replace(/import\(\s*["'](\.[^"']+)['"]\s*\)/g, (_, relPath: string) => {
-    const absPath = resolvePath(dir, relPath)
-    return `import(new URL("${absPath}",document.baseURI).href)`
-  })
+  return code
+    .replace(/__VITE_PRELOAD__/g, 'void 0')
+    .replace(/import\(\s*["'](\.[^"']+)['"]\s*\)/g, (_, relPath: string) => {
+      const absPath = resolvePath(dir, relPath)
+      return `import(new URL("${absPath}",document.baseURI).href)`
+    })
 }

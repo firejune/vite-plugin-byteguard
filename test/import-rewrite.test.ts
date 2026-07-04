@@ -88,4 +88,12 @@ describe('rewriteDynamicImports', () => {
       `import(new URL("assets/InformationDb-C3xK9f2a.js",document.baseURI).href)`
     )
   })
+
+  it('should replace __VITE_PRELOAD__ references with void 0', () => {
+    const code = `__VITE_PRELOAD__(() => import('./chunk.js'), void 0, baseUrl)`
+    const result = rewriteDynamicImports(code, 'assets/')
+    expect(result).toBe(
+      `void 0(() => import(new URL("assets/chunk.js",document.baseURI).href), void 0, baseUrl)`
+    )
+  })
 })
