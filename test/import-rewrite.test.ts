@@ -96,4 +96,12 @@ describe('rewriteDynamicImports', () => {
       `void 0(() => import(new URL("assets/chunk.js",document.baseURI).href), void 0, baseUrl)`
     )
   })
+
+  it('should handle backtick (template literal) imports', () => {
+    const code = "import(`./cannon-es-DrM9GaWJ.js`)"
+    const result = rewriteDynamicImports(code, 'assets/')
+    expect(result).toBe(
+      `import(new URL("assets/cannon-es-DrM9GaWJ.js",document.baseURI).href)`
+    )
+  })
 })

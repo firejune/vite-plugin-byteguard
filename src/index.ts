@@ -43,7 +43,7 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
           // Fix dynamic import(): relative paths resolve against the document URL
           // in inline/Blob script context, not the original asset directory.
           // Convert relative paths to absolute URLs via document.baseURI.
-          .replace(/import\(\s*["'](\.[^"']+)['"]\s*\)/g, (_, relPath: string) => {
+          .replace(/import\(\s*["'`](\.[^"'`]+)["'`]\s*\)/g, (_, relPath: string) => {
             const absPath = resolvePath(dir, relPath)
             return `import(new URL("${absPath}",document.baseURI).href)`
           })
@@ -122,7 +122,7 @@ export function resolvePath(dir: string, relPath: string): string {
 export function rewriteDynamicImports(code: string, dir: string): string {
   return code
     .replace(/__VITE_PRELOAD__/g, 'void 0')
-    .replace(/import\(\s*["'](\.[^"']+)['"]\s*\)/g, (_, relPath: string) => {
+    .replace(/import\(\s*["'`](\.[^"'`]+)["'`]\s*\)/g, (_, relPath: string) => {
       const absPath = resolvePath(dir, relPath)
       return `import(new URL("${absPath}",document.baseURI).href)`
     })
