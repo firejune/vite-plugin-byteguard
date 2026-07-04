@@ -7,19 +7,12 @@ import { generateLoader } from './decoder'
 export type { ByteGuardOptions, Algorithm } from './types'
 
 export default function byteguard(options: ByteGuardOptions = {}): Plugin {
-  const {
-    algorithm = 'xor',
-    keySize = 32,
-    exclude = [],
-    extension = 'bin'
-  } = options
+  const { algorithm = 'xor', keySize = 32, exclude = [], extension = 'bin' } = options
 
   return {
     name: 'vite-plugin-byteguard',
     apply: 'build',
     enforce: 'post',
-
-
 
     generateBundle(_, bundle) {
       const jsChunks = new Map<string, OutputChunk>()
@@ -43,20 +36,14 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
         const code = chunk.code
           // Fix import.meta.url: inline scripts get page URL instead of asset URL.
           // Replace with a computed URL that resolves to the original asset path.
-          .replace(
-            /import\.meta\.url/g,
-            `new URL("${fileName}",document.baseURI).href`
-          )
+          .replace(/import\.meta\.url/g, `new URL("${fileName}",document.baseURI).href`)
           // Fix dynamic import(): relative paths resolve against the document URL
           // in inline/Blob script context, not the original asset directory.
           // Convert relative paths to absolute URLs via document.baseURI.
-          .replace(
-            /import\(\s*["'](\.[^"']+)['"]\s*\)/g,
-            (_, relPath: string) => {
-              const absPath = resolvePath(dir, relPath)
-              return `import(new URL("${absPath}",document.baseURI).href)`
-            }
-          )
+          .replace(/import\(\s*["'](\.[^"']+)['"]\s*\)/g, (_, relPath: string) => {
+            const absPath = resolvePath(dir, relPath)
+            return `import(new URL("${absPath}",document.baseURI).href)`
+          })
         const encoded = encode(code, algorithm, keySize)
         const binFileName = fileName.replace(/\.js$/, `.${extension}`)
 
@@ -72,31 +59,17 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
 
       // Update HTML: replace <script> tags with inline loader
       for (const [, asset] of Object.entries(bundle)) {
-        if (
-          !String(asset.fileName).endsWith('.html') ||
-          asset.type !== 'asset'
-        )
-          continue
+        if (!String(asset.fileName).endsWith('.html') || asset.type !== 'asset') continue
 
-        let html =
-          typeof asset.source === 'string'
-            ? asset.source
-            : new TextDecoder().decode(asset.source)
+        let html = typeof asset.source === 'string' ? asset.source : new TextDecoder().decode(asset.source)
 
         for (const [jsFileName, binFileName] of binMap) {
           const escaped = escapeRegex(jsFileName)
-          const scriptRe = new RegExp(
-            `<script([^>]*)src=["']([^"']*${escaped})["']([^>]*)>\\s*</script>`,
-            'g'
-          )
+          const scriptRe = new RegExp(`<script([^>]*)src=["']([^"']*${escaped})["']([^>]*)>\\s*</script>`, 'g')
 
           html = html.replace(scriptRe, (_match, pre: string) => {
             const isModule = /type\s*=\s*["']module["']/.test(pre)
-            const loader = generateLoader(
-              `./${binFileName}`,
-              algorithm,
-              isModule
-            )
+            const loader = generateLoader(`./${binFileName}`, algorithm, isModule)
             return `<script>${loader}</script>`
           })
         }
@@ -105,15 +78,13 @@ export default function byteguard(options: ByteGuardOptions = {}): Plugin {
       }
 
       const names = [...binMap.values()].join(', ')
-      console.log(
-        `\x1b[36m[byteguard]\x1b[0m Encoded ${binMap.size} chunk(s) with ${algorithm}: ${names}`
-      )
+      console.log(`\x1b[36m[byteguard]\x1b[0m Encoded ${binMap.size} chunk(s) with ${algorithm}: ${names}`)
     }
   }
 }
 
 function isExcluded(fileName: string, patterns: string[]): boolean {
-  return patterns.some((pattern) => {
+  return patterns.some(pattern => {
     if (pattern.includes('*')) {
       const re = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$')
       return re.test(fileName)
@@ -146,11 +117,8 @@ export function resolvePath(dir: string, relPath: string): string {
  * Exported for testing purposes.
  */
 export function rewriteDynamicImports(code: string, dir: string): string {
-  return code.replace(
-    /import\(\s*["'](\.[^"']+)['"]\s*\)/g,
-    (_, relPath: string) => {
-      const absPath = resolvePath(dir, relPath)
-      return `import(new URL("${absPath}",document.baseURI).href)`
-    }
-  )
+  return code.replace(/import\(\s*["'](\.[^"']+)['"]\s*\)/g, (_, relPath: string) => {
+    const absPath = resolvePath(dir, relPath)
+    return `import(new URL("${absPath}",document.baseURI).href)`
+  })
 }
