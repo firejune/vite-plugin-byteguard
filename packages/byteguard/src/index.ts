@@ -1,0 +1,6 @@
+export { encode } from './encoder'
+export { generateLoader } from './decoder'
+export { xorEncode } from './algorithms/xor'
+export { aesEncode } from './algorithms/aes'
+export { MAGIC, VERSION, ALG_XOR, ALG_AES_GCM } from './types'
+export type { Algorithm, ByteGuardOptions } from './types'

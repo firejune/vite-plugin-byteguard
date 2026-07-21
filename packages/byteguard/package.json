@@ -1,0 +1,52 @@
+{
+  "name": "byteguard",
+  "version": "0.3.2",
+  "description": "Encodes JS bundles into a binary format for casual source code protection. Bundler-agnostic core.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "bytecode",
+    "binary",
+    "protection",
+    "obfuscation",
+    "source-protection",
+    "capacitor",
+    "electron"
+  ],
+  "author": "firejune",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firejune/byteguard.git",
+    "directory": "packages/byteguard"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/firejune/byteguard/issues"
+  },
+  "homepage": "https://github.com/firejune/byteguard#readme"
+}

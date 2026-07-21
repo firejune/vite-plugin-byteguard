@@ -1,10 +1,9 @@
 import type { Plugin } from 'vite'
 import type { OutputAsset, OutputChunk } from 'rollup'
-import type { ByteGuardOptions } from './types'
-import { encode } from './encoder'
-import { generateLoader } from './decoder'
+import type { ByteGuardOptions } from 'byteguard'
+import { encode, generateLoader } from 'byteguard'
 
-export type { ByteGuardOptions, Algorithm } from './types'
+export type { ByteGuardOptions, Algorithm } from 'byteguard'
 
 export default function byteguard(options: ByteGuardOptions = {}): Plugin {
   const { algorithm = 'xor', keySize = 32, exclude = [], extension = 'bin' } = options
